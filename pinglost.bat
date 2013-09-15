@@ -16,6 +16,9 @@ multiple hostname and see if both were losing packets at the same time.
 For help:
 pinglost /?
 
+To add:
++ Ping statistic
+
 /////////////////////////
 :documentationend
 	setlocal enabledelayedexpansion
@@ -57,6 +60,8 @@ pinglost /?
 	echo.
 	echo The parameters following the hostname can be in any order.
 	exit /b
+
+:pingloststart
 	:: Define the option names along with default values, using a <space>
 	:: delimiter between options.
 	::
@@ -80,7 +85,6 @@ pinglost /?
 	:: example:
 	:: set "options=-n:4 -option2:"" -option3:"three word default" -help: -flag2:"
 	::
-:pingloststart
 	set "options=-n:4 -l:32 -w:4000"
 
 	:: Set the default option values
@@ -113,9 +117,10 @@ pinglost /?
 	)
 	
 :pinglostcommand
+	:: default param for the IP or hostname
 	set hostIP=%1
 
-	:: Set Filename with Date and Time
+	:: format and sets the Date and Time vars
 	For /f "tokens=1-4 delims=- " %%a in ('date /t') do (set mydate=%%a-%%b-%%c)
 	For /f "tokens=1-2 delims=:" %%a in ('time /t') do (set mytime=%%ah%%b)
 
@@ -129,7 +134,7 @@ pinglost /?
 	set - >> %filename%.txt
 	echo -------------------------------------- >> %filename%.txt
 
-	:: iterate x times, where x is %2
+	:: iterate x times, where x is the -n option
 	for /l %%x in (2, 1, %-n%) do (
 		call :pingfunction
 		REM hack to wait 1 second approx., works on every PC
@@ -137,8 +142,10 @@ pinglost /?
 	)
 :exit /b
 
-REM FUNCTION the ping command and echoing only lost packets
 :pingfunction
+	:: FUNCTION the ping command and echoing only lost packets
+	:: in order to output properly into a text file, it only send one ping
+	:: at the time.
 	set pingline=1
 	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% %hostIP%') do (
 		if !pingline! equ 2 (
