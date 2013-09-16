@@ -41,8 +41,8 @@ To add:
 	:: Called when the flag /? is the first param
 	echo.
 	echo The pinglost command sends a ping request to "hostname_or_IP" then logs the
-	echo lost packets into a file called "Ping_hostname_AAAA-MM-DD_HHhMM.txt" with
-	echo a timestamp.
+	echo lost packets and state changes into a file called "PingLost_hostname_AAAAMMDD_HHMM.txt"
+	echo with a timestamp.
 	echo.
 	echo call: pinglost hostname_or_IP [-n count] [-l size] [-w timeout]
 	echo.
@@ -121,19 +121,22 @@ To add:
 	set hostIP=%1
 
 	:: format and sets the Date and Time vars
-	For /f "tokens=1-4 delims=- " %%a in ('date /t') do (set mydate=%%a-%%b-%%c)
-	For /f "tokens=1-2 delims=:" %%a in ('time /t') do (set mytime=%%ah%%b)
+	For /f "tokens=1-4 delims=- " %%a in ('date /t') do (set mydate=%%a%%b%%c)
+	For /f "tokens=1-2 delims=:" %%a in ('time /t') do (set mytime=%%a%%b)
 
 	set startTimeStamp=%mydate%_%mytime%
-	set filename=Ping_%hostIP%_%startTimeStamp%
+	set filename=PingLost_%hostIP%_%startTimeStamp%
 
 	:: file creation and setting the header
 	echo Use "/?" for help. > %filename%.txt
-	echo Only lost packets are logged. >> %filename%.txt
+	echo Only lost packets and state changes are logged. >> %filename%.txt
 	echo Ping to %hostIP% started at %startTimeStamp% with options: >> %filename%.txt
 	set - >> %filename%.txt
 	echo -------------------------------------- >> %filename%.txt
+	echo Trying to connect to %hostIP% ... >> %filename%.txt
 
+	set state=fail
+	set laststate=fail
 	:: iterate x times, where x is the -n option
 	for /l %%x in (2, 1, %-n%) do (
 		call :pingfunction
@@ -143,15 +146,19 @@ To add:
 :exit /b
 
 :pingfunction
-	rem FUNCTION the ping command and echoing only lost packets
-	rem in order to output properly into a text file, it only send one ping
-	rem at the time.
+	:: FUNCTION the ping command and echoing only lost packets
+	:: in order to output properly into a text file, it only send one ping
+	:: at the time.
 	set logline=error
+	set state=fail
 	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% %hostIP% ^| find "TTL="') do (
 		set logline=%%A
+		set state=success
 	)
-	rem echo !errorlevel!
-	echo !date! !time! !logline!
-	if !logline!==error echo !date! !time! !logline! >> %filename%.txt
 
+	echo !date! !time! !logline!
+	if not !state!==!laststate! echo !date! !time! state changed to !state! >> %filename%.txt
+	if !logline!==error echo !date! !time! Lost packet >> %filename%.txt
+	
+	set laststate=!state!
 	exit /b
