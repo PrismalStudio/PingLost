@@ -138,21 +138,20 @@ To add:
 	for /l %%x in (2, 1, %-n%) do (
 		call :pingfunction
 		REM hack to wait 1 second approx., works on every PC
-		PING -n 2 127.0.0.1>nul 
+		ping -n 2 127.0.0.1 >nul: 2>nul:
 	)
 :exit /b
 
 :pingfunction
-	:: FUNCTION the ping command and echoing only lost packets
-	:: in order to output properly into a text file, it only send one ping
-	:: at the time.
-	set pingline=1
-	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% %hostIP%') do (
-		if !pingline! equ 2 (
-			set logline=!date! !time! "%%A"
-			echo !logline! | find "TTL=">nul || echo !logline! >> %filename%.txt
-			)
-		set /a pingline+=1
-		)
-	echo %logline%
+	rem FUNCTION the ping command and echoing only lost packets
+	rem in order to output properly into a text file, it only send one ping
+	rem at the time.
+	set logline=error
+	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% %hostIP% ^| find "TTL="') do (
+		set logline=%%A
+	)
+	rem echo !errorlevel!
+	echo !date! !time! !logline!
+	if !logline!==error echo !date! !time! !logline! >> %filename%.txt
+
 	exit /b
