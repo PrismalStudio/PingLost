@@ -41,8 +41,8 @@ To add:
 	:: Called when the flag /? is the first param
 	echo.
 	echo The pinglost command sends a ping request to "hostname_or_IP" then logs the
-	echo lost packets and state changes into a file called "PingLost_hostname_AAAAMMDD_HHMM.txt"
-	echo with a timestamp.
+	echo lost packets and state changes into a file called 
+	echo "PingLost_hostname_AAAAMMDD_HHMM.txt" with a timestamp.
 	echo.
 	echo call: pinglost hostname_or_IP [-n count] [-l size] [-w timeout]
 	echo.
