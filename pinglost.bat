@@ -1,5 +1,5 @@
 @echo off
-GOTO documentationend
+GOTO headerEnd
 /////////////////////////
 DOCUMENTATION
 
@@ -16,11 +16,16 @@ multiple hostname and see if both were losing packets at the same time.
 For help:
 pinglost /?
 
-To add:
-+ Ping statistic
+Changelog
+2013-10-11
++ TTL ping's option -i with default 128
++ -f ping's option
+2013-10-13
++ -o filename option
++ mininalist statistics
 
 /////////////////////////
-:documentationend
+:headerEnd
 	setlocal enabledelayedexpansion
 	
 	:: Can't run without param
@@ -33,35 +38,7 @@ To add:
 		call :help
 		exit /b
 	)
-	
-	:: start the program
-	goto :pingloststart
-		
-:help
-	:: Called when the flag /? is the first param
-	echo.
-	echo The pinglost command sends a ping request to "hostname_or_IP" then logs the
-	echo lost packets and state changes into a file called 
-	echo "PingLost_hostname_AAAAMMDD_HHMM.txt" with a timestamp.
-	echo.
-	echo call: pinglost hostname_or_IP [-n count] [-l size] [-w timeout]
-	echo.
-	echo -n count         Specifies the number of Echo Request messages sent.
-	echo                  The default is 4.
-	echo -l size          Specifies the length, in bytes, of the Data field in 
-	echo                  the Echo Request messages sent. The default is 32. 
-	echo                  The maximum size is 65,527.
-	echo -w timeout       Specifies the amount of time, in milliseconds, to wait 
-	echo                  for the Echo Reply message that corresponds to a given 
-	echo                  Echo Request message to be received. If the Echo Reply 
-	echo                  message is not received within the time-out, the "Request 
-	echo                  timed out" error message is displayed. The default 
-	echo                  time-out is 4000 (4 seconds).
-	echo.
-	echo The parameters following the hostname can be in any order.
-	exit /b
 
-:pingloststart
 	:: Define the option names along with default values, using a <space>
 	:: delimiter between options.
 	::
@@ -85,7 +62,7 @@ To add:
 	:: example:
 	:: set "options=-n:4 -option2:"" -option3:"three word default" -help: -flag2:"
 	::
-	set "options=-n:4 -l:32 -w:4000"
+	set "options=-n:4 -l:32 -w:4000 -i:128 -f: -o:"" -p:"
 
 	:: Set the default option values
 	for %%O in (%options%) do for /f "tokens=1,* delims=:" %%A in ("%%O") do set "%%A=%%~B"
@@ -105,7 +82,7 @@ To add:
 		) else if "!test:~0,2!"==" " (
 			rem Set the flag option using the option name.
 			rem The value doesn't matter, it just needs to be defined.
-			set "%~2=1"
+			set "%~2=%~2"
 		) else (
 			rem Set the option value using the option as the name.
 			rem and the next arg as the value
@@ -117,6 +94,7 @@ To add:
 	)
 	
 :pinglostcommand
+	set -
 	:: default param for the IP or hostname
 	set hostIP=%1
 
@@ -125,16 +103,21 @@ To add:
 	For /f "tokens=1-2 delims=:" %%a in ('time /t') do (set mytime=%%a%%b)
 
 	set startTimeStamp=%mydate%_%mytime%
-	set filename=PingLost_%hostIP%_%startTimeStamp%
+	set filename=""
+	IF "%-o%"=="" (set filename=PingLost_%hostIP%_%startTimeStamp%.txt) ELSE (set filename=%-o%)
 
 	:: file creation and setting the header
-	echo Use "/?" for help. > %filename%.txt
-	echo Only lost packets and state changes are logged. >> %filename%.txt
-	echo Ping to %hostIP% started at %startTimeStamp% with options: >> %filename%.txt
-	set - >> %filename%.txt
-	echo -------------------------------------- >> %filename%.txt
-	echo Trying to connect to %hostIP% ... >> %filename%.txt
+	echo Use "/?" for help. > %filename%
+	echo Only lost packets and state changes are logged. >> %filename%
+	echo Ping to %hostIP% started at %startTimeStamp% with options: >> %filename%
+	set - >> %filename%
+	echo -------------------------------------- >> %filename%
+	echo Trying to connect to %hostIP% ... >> %filename%
 
+	set /A pingCounter=0
+	set /A lostpingCounter=0
+	set /A lostRatio=0
+	
 	set state=fail
 	set laststate=fail
 	:: iterate x times, where x is the -n option
@@ -143,6 +126,9 @@ To add:
 		REM hack to wait 1 second approx., works on every PC
 		ping -n 2 127.0.0.1 >nul: 2>nul:
 	)
+	echo -------------------------------------- >> %filename%
+	echo Statistic for %hostIP% on %mydate% at %mytime%: >> %filename%
+	echo Packet sent = %pingCounter%, lost = %lostpingCounter% (%lostRatio%%% perte) >> %filename%
 :exit /b
 
 :pingfunction
@@ -151,14 +137,52 @@ To add:
 	:: at the time.
 	set logline=error
 	set state=fail
-	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% %hostIP% ^| find "TTL="') do (
+	for /f "delims=" %%A in ('ping -n 1 -w %-w% -l %-l% -i %-i% %-f% %hostIP% ^| find "TTL="') do (
 		set logline=%%A
 		set state=success
 	)
-
-	echo !date! !time! !logline!
-	if not !state!==!laststate! echo !date! !time! state changed to !state! >> %filename%.txt
-	if !logline!==error echo !date! !time! Lost packet >> %filename%.txt
+	:: increment the total ping count
+	if !logline!==error set /A lostpingCounter=!lostpingCounter! + 1
+	set /A pingCounter=!pingCounter! + 1
+	set /A lostRatio=lostpingCounter / pingCounter
+	
+	:: then output to the console and the file
+	call :output
 	
 	set laststate=!state!
+	exit /b
+	
+:output
+	:: outputs the ping information each ping
+	echo !date! !time! !logline!
+	if not !state!==!laststate! echo !date! !time! state changed to !state! >> %filename%
+	if !logline!==error (
+		if not defined -p echo !date! !time! Lost packet >> %filename%
+	)
+	
+	exit /b
+	
+:help
+	:: Called when the flag /? is the first param
+	echo.
+	echo The pinglost command sends a ping request to "hostname_or_IP" then logs the
+	echo lost packets and state changes into a file called 
+	echo "PingLost_hostname_AAAAMMDD_HHMM.txt" with a timestamp.
+	echo.
+	echo call: pinglost hostname_or_IP [-n count] [-l size] [-i time] [-w timeout] [-o filename] [-f]
+	echo.
+	echo -n count         Specifies the number of Echo Request messages sent.
+	echo                  The default is 4.
+	echo -l size          Specifies the length, in bytes, of the Data field in 
+	echo                  the Echo Request messages sent. The default is 32. 
+	echo                  The maximum size is 65,527.
+	echo -i time          TTL, Time To Live in miliseconds. Default is 128.
+	echo -w timeout       Specifies the amount of time, in milliseconds, to wait 
+	echo                  for the Echo Reply. The default time-out is 4000 (4 seconds).
+	echo -o filename      Optional filename replacement. You must include the extension.
+	echo                  e.g. "MyPingFile.txt"
+	echo -f               Do not fragment packet flag.
+	echo -p               Don't output lost packets inside the log file.
+	echo.
+	echo The parameters following the hostname can be in any order.
 	exit /b
