@@ -2,7 +2,7 @@
 # What is PingLost? #
 It's a batch file that logs lost packets and state changes to a text file. It automatically creates a text file according to the date and time and the hostname or IP address you're monitoring.
 
-It's not guaranteed to be locale-independent so it may not work properly on some computer with different language (I know for sure that it works with french).
+*It's not guaranteed to be locale-independent* so it may not work properly on some computer with different language (I know for sure that it works with french).
 
 # Why do I need it? #
 
@@ -45,3 +45,11 @@ Just call `pinglost /?` to see this:
 ## Where is the log file? ##
 
 It is supposed to be in the working directory.
+
+# Story time #
+
+So you might be wondering why a batch file when there are all those multi-plateform programming languages? Well, it's simple. Here's the initial goal and constraints:
+- Log the lost packets (overnight);
+- Multiple hosts at the same time;
+- Can't need an installation because of restricted rights on the target computer (Windows XP);
+- Have to be similar to the ping command since the users were used to that command.
