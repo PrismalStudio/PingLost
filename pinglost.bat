@@ -3,9 +3,9 @@ GOTO headerEnd
 /////////////////////////
 DOCUMENTATION
 
-Author: E. Bergeron
+Author: Emile Bergeron
 Website: www.prismalstudio.com
-Email: contact@prismalstudio.com
+Email: contact+source@prismalstudio.com
 
 Options parsing provided by dbenham on stackoverflow.com
 http://stackoverflow.com/a/8162578/1218980
