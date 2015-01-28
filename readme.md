@@ -1,3 +1,4 @@
+![Logo](https://github.com/PrismalStudio/PingLost/blob/master/image/pinglost_logo.png)
 # What is PingLost? #
 It's a batch file that logs lost packets and state changes to a text file. It automatically creates a text file according to the date and time and the hostname or IP address you're monitoring.
 
