@@ -23,6 +23,10 @@ Changelog
 2013-10-13
 + -o filename option
 + mininalist statistics
+2022-05-20
++ modified filename
++ included support for inifinite ping
+
 
 /////////////////////////
 :headerEnd
@@ -99,8 +103,8 @@ Changelog
 	set hostIP=%1
 
 	:: format and sets the Date and Time vars
-	For /f "tokens=1-4 delims=- " %%a in ('date /t') do (set mydate=%%a%%b%%c)
-	For /f "tokens=1-2 delims=:" %%a in ('time /t') do (set mytime=%%a%%b)
+	For /f "tokens=2-4 delims=/ " %%a in ('date /t') do (set mydate=%%c-%%a-%%b)
+	For /f "tokens=1-2 delims=/:" %%a in ('time /t') do (set mytime=%%a%%b)
 
 	set startTimeStamp=%mydate%_%mytime%
 	set filename=""
@@ -120,8 +124,17 @@ Changelog
 	
 	set state=fail
 	set laststate=fail
+	
+	:: this is the increment used in the for, set to 0 for infinite loop
+	set increment=1
+	set ntimes=%-n%
+	if "%-n%"=="0" (
+		set increment=0 
+		set -n=4
+	)
+
 	:: iterate x times, where x is the -n option
-	for /l %%x in (2, 1, %-n%) do (
+	for /l %%x in (2, %increment%, %-n%) do (
 		call :pingfunction
 		REM hack to wait 1 second approx., works on every PC
 		ping -n 2 127.0.0.1 >nul: 2>nul:
@@ -172,7 +185,7 @@ Changelog
 	echo call: pinglost hostname_or_IP [-n count] [-l size] [-i time] [-w timeout] [-o filename] [-f]
 	echo.
 	echo -n count         Specifies the number of Echo Request messages sent.
-	echo                  The default is 4.
+	echo                  The default is 4. Use 0 for infinite ping (like -t option).
 	echo -l size          Specifies the length, in bytes, of the Data field in 
 	echo                  the Echo Request messages sent. The default is 32. 
 	echo                  The maximum size is 65,527.

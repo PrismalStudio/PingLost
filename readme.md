@@ -28,7 +28,7 @@ Just call `pinglost /?` to see this:
 	lename] [-f]
 	
 	-n count         Specifies the number of Echo Request messages sent.
-	                 The default is 4.
+	                 The default is 4. Use 0 for infinite ping (like -t option).
 	-l size          Specifies the length, in bytes, of the Data field in
 	                 the Echo Request messages sent. The default is 32.
 	                 The maximum size is 65,527.
